@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>English Adventure</title>
+
+<style>
+body{
+  font-family:Arial,sans-serif;
+  background:#eef2ff;
+  margin:0;
+  padding:20px;
+  text-align:center;
+}
+
+h1{
+  color:#2f4df5;
+}
+
+.card{
+  background:white;
+  border-radius:20px;
+  padding:20px;
+  max-width:500px;
+  margin:auto;
+  box-shadow:0 4px 15px rgba(0,0,0,0.1);
+}
+
+.emoji{
+  font-size:70px;
+}
+
+button{
+  width:100%;
+  border:none;
+  border-radius:15px;
+  padding:15px;
+  margin:8px 0;
+  font-size:22px;
+  background:#2f4df5;
+  color:white;
+}
+
+button:disabled{
+  opacity:1;
+}
+
+.secondary{
+  background:#777;
+}
+
+.info{
+  color:#666;
+}
+
+.result{
+  font-size:42px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🎓 English Adventure</h1>
+
+<div id="app"></div>
+
+<script>
+
+const animals = [
+{emoji:"🐱",sk:"Mačka",en:"Cat"},
+{emoji:"🐶",sk:"Pes",en:"Dog"},
+{emoji:"🐰",sk:"Králik",en:"Rabbit"},
+{emoji:"🐸",sk:"Žaba",en:"Frog"},
+{emoji:"🐦",sk:"Vták",en:"Bird"},
+{emoji:"🐟",sk:"Ryba",en:"Fish"},
+{emoji:"🐴",sk:"Kôň",en:"Horse"},
+{emoji:"🐮",sk:"Krava",en:"Cow"},
+{emoji:"🐷",sk:"Prasa",en:"Pig"},
+{emoji:"🦆",sk:"Kačka",en:"Duck"},
+{emoji:"🐑",sk:"Ovca",en:"Sheep"},
+{emoji:"🐐",sk:"Koza",en:"Goat"},
+{emoji:"🐭",sk:"Myš",en:"Mouse"},
+{emoji:"🐻",sk:"Medveď",en:"Bear"},
+{emoji:"🦊",sk:"Líška",en:"Fox"},
+{emoji:"🐺",sk:"Vlk",en:"Wolf"},
+{emoji:"🦁",sk:"Lev",en:"Lion"},
+{emoji:"🐯",sk:"Tiger",en:"Tiger"},
+{emoji:"🐵",sk:"Opica",en:"Monkey"},
+{emoji:"🐘",sk:"Slon",en:"Elephant"}
+];
+
+let child="";
+let lesson=[];
+let currentIndex=0;
+let lessonPoints=0;
+let attempts=0;
+let currentWord=null;
+
+function getTotals(){
+ return JSON.parse(
+  localStorage.getItem("englishAdventure")
+  || '{"young":0,"old":0}'
+ );
+}
+
+function saveTotals(){
+ let d=getTotals();
+ d[child]=(d[child]||0)+lessonPoints;
+ localStorage.setItem(
+  "englishAdventure",
+  JSON.stringify(d)
+ );
+}
+
+function home(){
+
+ const d=getTotals();
+
+ document.getElementById("app").innerHTML=`
+ <div class="card">
+
+ <h2>Vyber dieťa</h2>
+
+ <button onclick="startGame('young')">
+ 👧 Mladšie dieťa
+ <br>
+ <small>Body: ${d.young||0}</small>
+ </button>
+
+ <button onclick="startGame('old')">
+ 👦 Staršie dieťa
+ <br>
+ <small>Body: ${d.old||0}</small>
+ </button>
+
+ </div>
+ `;
+}
+
+function startGame(type){
+
+ child=type;
+ lessonPoints=0;
+ currentIndex=0;
+ attempts=0;
+
+ lesson=[...animals]
+ .sort(()=>Math.random()-0.5);
+
+ showQuestion();
+}
+
+function showQuestion(){
+
+ if(currentIndex>=20){
+   finishLesson();
+   return;
+ }
+
+ attempts=0;
+ currentWord=lesson[currentIndex];
+
+ let options=[
+   currentWord.en,
+   ...animals
+     .filter(a=>a.en!==currentWord.en)
+     .sort(()=>Math.random()-0.5)
+     .slice(0,3)
+     .map(a=>a.en)
+ ].sort(()=>Math.random()-0.5);
+
+ document.getElementById("app").innerHTML=`
+ <div class="card">
+
+ <p class="info">
+ Otázka ${currentIndex+1}/20
+ </p>
+
+ <p class="info">
+ Body v lekcii: ${lessonPoints}
+ </p>
+
+ <div class="emoji">
+ ${currentWord.emoji}
+ </div>
+
+ <h2>${currentWord.sk}</h2>
+
+ ${options.map(o=>
+ `<button onclick="answer('${o}')">${o}</button>`
+ ).join("")}
+
+ <div id="message"></div>
+
+ </div>
+ `;
+}
+
+function markAnswers(selected){
+
+ const buttons = document.querySelectorAll("button");
+
+ buttons.forEach(btn=>{
+   const text = btn.innerText.trim();
+
+   if(text === currentWord.en){
+     btn.style.backgroundColor = "#16a34a";
+   }
+
+   if(text === selected && selected !== currentWord.en){
+     btn.style.backgroundColor = "#dc2626";
+   }
+ });
+}
+
+function lockButtons(){
+ const buttons = document.querySelectorAll("button");
+ buttons.forEach(btn=>{
+   btn.disabled = true;
+ });
+}
+
+function answer(selected){
+
+ markAnswers(selected);
+
+ if(selected===currentWord.en){
+
+   lockButtons();
+
+   if(child==="young"){
+     if(attempts===0){
+       lessonPoints++;
+       document.getElementById("message").innerHTML=
+       "<h3>🎉 Správne na prvýkrát! +1 bod</h3>";
+     }else{
+       document.getElementById("message").innerHTML=
+       "<h3>✅ Správne, ale bez bodu</h3>";
+     }
+   }else{
+     lessonPoints++;
+     document.getElementById("message").innerHTML=
+     "<h3>🎉 Správne! +1 bod</h3>";
+   }
+
+   currentIndex++;
+
+   setTimeout(showQuestion,1000);
+
+   return;
+ }
+
+ attempts++;
+
+ if(child==="young"){
+
+   if(attempts>=3){
+
+     document.getElementById("message").innerHTML=
+     "<p>Klikni na zelenú odpoveď 😊</p>";
+
+   }else{
+
+     document.getElementById("message").innerHTML=
+     "<p>Skús ešte raz 😊</p>";
+
+   }
+
+ }else{
+
+   lockButtons();
+
+   document.getElementById("message").innerHTML=
+   "<p>❌ Nesprávne</p>";
+
+   currentIndex++;
+
+   setTimeout(showQuestion,1300);
+ }
+}
+
+function finishLesson(){
+
+ saveTotals();
+
+ let stars="😊";
+
+ if(lessonPoints>=18){
+   stars="⭐⭐⭐";
+ }
+ else if(lessonPoints>=15){
+   stars="⭐⭐";
+ }
+ else if(lessonPoints>=10){
+   stars="⭐";
+ }
+
+ document.getElementById("app").innerHTML=`
+ <div class="card">
+
+ <h2>🎉 Lekcia dokončená</h2>
+
+ <p>
+ Výsledok:
+ ${lessonPoints}/20
+ </p>
+
+ <div class="result">
+ ${stars}
+ </div>
+
+ <button onclick="startGame(child)">
+ Hrať znova
+ </button>
+
+ <button class="secondary"
+ onclick="home()">
+ Domov
+ </button>
+
+ </div>
+ `;
+}
+
+home();
+
+</script>
+
+</body>
+</html>
